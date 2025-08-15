@@ -2,13 +2,13 @@
 
 # Check if the correct number of arguments is provided
 if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 repo_name prog_name"
+    echo "Usage: $0 prog_name \"Author Name\""
     exit 1
 fi
 
 # Get the input arguments
-repo_name=$1
-prog_name=$2
+prog_name=$1
+author_name=$2
 
 # Define the content with the argument included
 header_content="\\\\usepackage{graphics,color,eurosym,latexsym}
@@ -40,65 +40,64 @@ doc_content="\\\\documentclass[a4paper]{article}
 \\\\begin{document}
 \\\\pagestyle{noweb}
 
-\\\\title{A new program}
-\\\\author{Ivan Tsers}
-\\\\date{\\\\input{date.txt}, \\\\input{version.txt}}
+\\\\title{A new program \\\\texttt{$prog_name}}
+\\\\author{$author_name}
+\\\\date{\\\\input{version.txt}}
 \\\\maketitle
 
 \\\\tableofcontents
 
 \\\\section{Introduction}
 \\\\input{intro}
-\\\\section{A program}
+\\\\section{Implementation}
 \\\\input{$prog_name}
-\\\\section{Testing}
-\\\\input{"$prog_name"_test}
 
 \\\\bibliography{ref}
 \\\\end{document}"
 
 doc_makefile_content="NAME = $prog_name
-date = \$(shell git log | grep -m 1 Date | sed -r 's/Date: +[A-Z][a-z]+ ([A-Z][a-z]+) ([0-9]+) [^ ]+ ([0-9]+) .+/\2_\1_\3/')
-version = \$(shell git describe)
+
+# ---------- Helper scripts ----------
+ORG2NW   := bash ../scripts/org2nw
+PREWEAVE := awk -f ../scripts/preWeave.awk
+
+# Build the version string
+TAG = \$(shell git tag)
+VERSION = \$(shell git log --pretty=format:\"%cs, \${TAG}-%h\" -n 1)
+
 all: \$(NAME)Doc.pdf
-	echo \$(date) | tr '_' ' ' > date.txt
-	echo \$(version) | tr '-' ' ' | awk '{printf \"%s\", \$\$1; if (\$\$2) printf \"-%s\", \$\$2; printf "\n"}' > version.txt
+	echo \$(VERSION) > version.txt
 	latex \$(NAME)Doc
 	bibtex \$(NAME)Doc
 	latex \$(NAME)Doc
 	latex \$(NAME)Doc
 	dvipdf -dALLOWPSTRANSPARENCY \$(NAME)Doc
-\$(NAME)Doc.pdf: \$(NAME)Doc.tex \$(NAME).tex \$(NAME)_test.tex
+\$(NAME)Doc.pdf: \$(NAME)Doc.tex \$(NAME).tex
 \$(NAME).tex: ../\$(NAME).org
-	bash ../scripts/org2nw ../\$(NAME).org       | awk -f ../scripts/preWeave.awk | noweave -n -x > \$(NAME).tex
-\$(NAME)_test.tex: ../\$(NAME)_test.org
-	bash ../scripts/org2nw ../\$(NAME)_test.org  | awk -f ../scripts/preWeave.awk | noweave -n -x | sed 's/_test/\\\\\\_test/' > \$(NAME)_test.tex
-clean:
-	rm -f \$(NAME).tex \$(NAME)_test.tex *.pdf *.aux *.bbl *.blg *.dvi *.log *.toc date.txt version.txt"
-	
-main_makefile_content="EXE = $prog_name
-all: \$(EXE)
-\$(EXE): \$(EXE).go
-	go build \$(EXE).go
-\$(EXE).go: \$(EXE).org
-	awk -f scripts/preTangle.awk \$(EXE).org | bash scripts/org2nw | notangle -R\$(EXE).go | gofmt > \$(EXE).go
-test: \$(EXE)_test.go \$(EXE)
-	go test -v
-\$(EXE)_test.go: \$(EXE)_test.org
-	awk -f scripts/preTangle.awk \$(EXE)_test.org | bash scripts/org2nw | notangle -R\$(EXE)_test.go | gofmt > \$(EXE)_test.go
+	\$(ORG2NW) ../\$(NAME).org | \$(PREWEAVE) | noweave -n -x > \$(NAME).tex
 
-.PHONY: doc clean init
+clean:
+	rm -f \$(NAME).tex *.pdf *.aux *.bbl *.blg *.dvi *.log *.toc version.txt"
+	
+main_makefile_content="NAME = $prog_name
+# ---------- Helper scripts ----------
+ORG2NW   := bash scripts/org2nw
+PRETANGLE := awk -f scripts/preTangle.awk
+
+all: \$(NAME)
+\$(NAME): \$(NAME).go
+	go build \$(NAME).go
+\$(NAME).go: \$(NAME).org
+	\$(ORG2NW) \$(NAME).org | \$(PRETANGLE) | notangle -R\$(NAME).go | gofmt > \$(NAME).go
+
+.PHONY: doc clean
 
 doc:
 	make -C doc
 
 clean:
-	rm -f \$(EXE) *.go
+	rm -f \$(NAME) *.go
 	make clean -C doc
-	
-init:
-	go mod init \$(EXE)
-	go mod tidy
 "
 
 program_content="#+begin_export latex
@@ -127,37 +126,9 @@ We import \\\\texttt{fmt}.
 #+end_src
 "
 
-test_content="#+begin_export latex
-We import the \\\\texttt{testing} package and add hooks for further
-imports and functions.
-#+end_export
-#+begin_src go <<"$prog_name"_test.go>>=
-  package "$prog_name"
-  import (
-	  \"testing\"
-	  //<<Testing imports>>
-  )
-  //<<Testing functions>>
-#+end_src
-#+begin_export latex
-The first testing function just says \"hello\"...
-#+end_export
-#+begin_src go <<Testing functions>>=
-  func TestHello(t *testing.T) {
-	  fmt.Println(\"Hello\")
-  }
-#+end_src
-#+begin_export latex
-We import \\\\texttt{fmt}.
-#+end_export
-#+begin_src go <<Testing imports>>=
-  \"fmt\"
-#+end_src
-"
-
 # Create repo and docs folders
-mkdir $repo_name
-cd $repo_name
+mkdir $prog_name
+cd $prog_name
 mkdir doc
 cd doc
 
@@ -169,10 +140,10 @@ echo -e "$doc_content" > "$prog_name"Doc.tex
 echo -e "$doc_makefile_content" > Makefile
 
 # Populate the root folder with stubs
-cd ../
+cd ..
 echo -e "$main_makefile_content" > Makefile
 echo -e "$program_content" > "$prog_name".org
-echo -e "$test_content" > "$prog_name"_test.org
+
 # Create and populate the scripts folder
 mkdir scripts
 cd scripts
@@ -182,10 +153,14 @@ sed '
 s/^#+begin_src *latex/@/
 s/^#+begin_export *latex/@/
 s/^#+begin_src *[cC] *<</<</
+s/^#+begin_src *[cC]++ *<</<</
 s/^#+begin_src *[sS][hH] *<</<</
 s/^#+begin_src *[aA][wW][kK] *<</<</
 s/^#+begin_src *[gG][oO] *<</<</
 s/^#+begin_src *[hH][tT][mM][lL] *<</<</
+s/^#+begin_src *[pP][yY][tT][hH][oO][nN] *<</<</
+s/^#+begin_src *[rR] *<</<</
+
 s/\\/\\/ *<</<</
 /^#+end/d
 /^\\*/d
@@ -207,7 +182,7 @@ content="/^ *!/ {
   } else 
     print
 }
-!/^ *!/ && !/begin_src go/ {
+!/^ *!/ && !/begin_src (go|c|c++|r|python|sh|html)/ {
   print
 }"
 echo -e "$content" > preTangle.awk
@@ -221,3 +196,10 @@ content="/^ *!/ {
   print
 }"
 echo -e "$content" > preWeave.awk
+
+# Initialize a git repository
+cd ..
+git init
+git add .
+git commit -m "initial commit"
+git tag -a 0.0 -m "initialized the project"
