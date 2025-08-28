@@ -1,0 +1,24 @@
+#+begin_export latex
+The package \texttt{$prog_name} has hooks for imports and functions.                                                          
+#+end_export
+#+begin_src go <<$prog_name.go>>=
+  package $prog_name
+  import (
+	  //<<Imports>>
+  )
+  //<<Functions>>
+#+end_src
+#+begin_export latex
+The function \texttt{hello} prints "hello"...
+#+end_export
+#+begin_src go <<Functions>>=
+  func hello() {
+	    fmt.Println("Hello")
+  }
+#+end_src
+#+begin_export latex
+We import \texttt{fmt}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "fmt"
+#+end_src

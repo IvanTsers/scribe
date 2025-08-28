@@ -1,204 +1,102 @@
 #!/bin/bash
+# We exit if any command returns an error
+set -e
 
-# Check if the correct number of arguments is provided
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 prog_name \"Author Name\""
+# ---------- Argument check and usage ----------
+
+# We print the usage if an incorrect number of arguments is provided
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 progName \"Author Name\" language(go|sh)"
+    echo " Note: Do not use underscores in progName to avoid LaTeX compilation errors."
     exit 1
 fi
 
 # Get the input arguments
 prog_name=$1
 author_name=$2
+lang=$3
 
-# Define the content with the argument included
-header_content="\\\\usepackage{graphics,color,eurosym,latexsym}
-\\\\usepackage{algorithm}
-\\\\usepackage[noend]{algorithmic}
-\\\\usepackage{times}
-\\\\usepackage[utf8]{inputenc}
-\\\\usepackage[T1]{fontenc}
-\\\\usepackage{pst-all}
-\\\\usepackage{verbatim}
-\\\\usepackage{noweb}
-\\\\usepackage{psfrag}
-\\\\usepackage{inconsolata}
-\\\\usepackage[straightquotes]{newtxtt}
-\\\\bibliographystyle{plain}"
+# If the language is unsupported, we notify the user and exit.
+case "$lang" in
+    go|sh)
+    # language recognized, do nothing
+    ;;
+    *) # default:
+	echo "Error: unsupported language '$language'"
+	echo "Supported languages: go, sh"
+	exit 1
+	;;
+esac
 
-intro_content="A placeholder for an introdiction~\\\\cite{aut:txt}."
-
-ref_content="@Article{aut:txt,
-  author = 	 {Author, A. and Author, B.},
-  title = 	 {Text},
-  journal =  {Folio},
-  year = 	 3000,
-  volume =   1,
-  pages  =   {1--100}}"
-
-doc_content="\\\\documentclass[a4paper]{article}
-\\\\input{header}
-\\\\begin{document}
-\\\\pagestyle{noweb}
-
-\\\\title{A new program \\\\texttt{$prog_name}}
-\\\\author{$author_name}
-\\\\date{\\\\input{version.txt}}
-\\\\maketitle
-
-\\\\tableofcontents
-
-\\\\section{Introduction}
-\\\\input{intro}
-\\\\section{Implementation}
-\\\\input{$prog_name}
-
-\\\\bibliography{ref}
-\\\\end{document}"
-
-doc_makefile_content="NAME = $prog_name
-
-# ---------- Helper scripts ----------
-ORG2NW   := bash ../scripts/org2nw
-PREWEAVE := awk -f ../scripts/preWeave.awk
-
-# Build the version string
-TAG = \$(shell git tag)
-VERSION = \$(shell git log --pretty=format:\"%cs, \${TAG}-%h\" -n 1)
-
-all: \$(NAME)Doc.pdf
-	echo \$(VERSION) > version.txt
-	latex \$(NAME)Doc
-	bibtex \$(NAME)Doc
-	latex \$(NAME)Doc
-	latex \$(NAME)Doc
-	dvipdf -dALLOWPSTRANSPARENCY \$(NAME)Doc
-\$(NAME)Doc.pdf: \$(NAME)Doc.tex \$(NAME).tex
-\$(NAME).tex: ../\$(NAME).org
-	\$(ORG2NW) ../\$(NAME).org | \$(PREWEAVE) | noweave -n -x > \$(NAME).tex
-
-clean:
-	rm -f \$(NAME).tex *.pdf *.aux *.bbl *.blg *.dvi *.log *.toc version.txt"
-	
-main_makefile_content="NAME = $prog_name
-# ---------- Helper scripts ----------
-ORG2NW   := bash scripts/org2nw
-PRETANGLE := awk -f scripts/preTangle.awk
-
-all: \$(NAME)
-\$(NAME): \$(NAME).go
-	go build \$(NAME).go
-\$(NAME).go: \$(NAME).org
-	\$(ORG2NW) \$(NAME).org | \$(PRETANGLE) | notangle -R\$(NAME).go | gofmt > \$(NAME).go
-
-.PHONY: doc clean
-
-doc:
-	make -C doc
-
-clean:
-	rm -f \$(NAME) *.go
-	make clean -C doc
-"
-
-program_content="#+begin_export latex
-The package \\\\texttt{$prog_name} has hooks for imports and functions.
-#+end_export
-#+begin_src go <<$prog_name.go>>=
-  package $prog_name
-  import (
-	  //<<Imports>>
-  )
-  //<<Functions>>
-#+end_src
-#+begin_export latex
-The function \\\\texttt{hello} prints \"hello\"...
-#+end_export
-#+begin_src go <<Functions>>=
-  func hello() {
-	  fmt.Println(\"Hello\")
-  }
-#+end_src
-#+begin_export latex
-We import \\\\texttt{fmt}.
-#+end_export
-#+begin_src go <<Imports>>=
-  \"fmt\"
-#+end_src
-"
-
-# Create repo and docs folders
+# We create the repo's dir
 mkdir $prog_name
+
+
+# ---------- The literate program ----------
+
+# We read the literate program template...
+program_content=$(<"templates/$lang/lit_prog.org")
+
+# ...and put the value of $prog_name in the template
+program_content="${program_content//\$prog_name/$prog_name}"
+
+# We write the program template
+echo "$program_content" > $prog_name/"$prog_name".org
+
+
+# ---------- Base Makefile ----------
+
+# We read the base makefile template and the language-specific module...
+base_makefile=$(<"templates/base.Makefile")
+lang_actions=$(<"templates/$lang/lang_actions.Makefile")
+
+# ...we glue it together and put $prog_name and $lang in the text 
+main_makefile_content=$(printf "%s\n\n%s\n" "$base_makefile" "$lang_actions")
+main_makefile_content="${main_makefile_content//\$prog_name/$prog_name}"
+main_makefile_content="${main_makefile_content//\$lang/$lang}"
+
+# We write the base makefile
+echo "$main_makefile_content" > $prog_name/Makefile
+
+
+# ---------- Files to compile the documentation ----------
+
+mkdir $prog_name/doc
+
+# We copy header.tex, intro.tex, and ref.bib templates as is
+cp templates/header.tex $prog_name/doc
+cp templates/intro.tex $prog_name/doc
+cp templates/ref.bib $prog_name/doc
+
+# We read the doc template...
+doc_content=$(<"templates/doc.tex")
+
+# ...and put the value of $prog_name and $author_name in the template
+doc_content="${doc_content//\$prog_name/$prog_name}"
+doc_content="${doc_content//\$author_name/$author_name}"
+
+# We write it to the doc dir
+echo "$doc_content" > $prog_name/doc/"$prog_name"Doc.tex
+
+# We read the doc makefile template...
+doc_makefile_content=$(<"templates/doc.Makefile")
+
+# ...and put the value of $prog_name in the template
+doc_makefile_content="${doc_makefile_content//\$prog_name/$prog_name}"
+
+# We write it to the doc dir
+echo "$doc_makefile_content" > $prog_name/doc/Makefile
+
+
+# ---------- The helper scripts ----------
+
+# We copy the helper scripts as is
+cp -r templates/scripts $prog_name
+
+
+# ---------- Initialize a git repository ----------
+
 cd $prog_name
-mkdir doc
-cd doc
-
-# Populate doc with stubs
-echo -e "$header_content" > header.tex
-echo -e "$intro_content" > intro.tex
-echo -e "$ref_content" > ref.bib
-echo -e "$doc_content" > "$prog_name"Doc.tex
-echo -e "$doc_makefile_content" > Makefile
-
-# Populate the root folder with stubs
-cd ..
-echo -e "$main_makefile_content" > Makefile
-echo -e "$program_content" > "$prog_name".org
-
-# Create and populate the scripts folder
-mkdir scripts
-cd scripts
-
-content="#!/bin/bash
-sed '
-s/^#+begin_src *latex/@/
-s/^#+begin_export *latex/@/
-s/^#+begin_src *[cC] *<</<</
-s/^#+begin_src *[cC]++ *<</<</
-s/^#+begin_src *[sS][hH] *<</<</
-s/^#+begin_src *[aA][wW][kK] *<</<</
-s/^#+begin_src *[gG][oO] *<</<</
-s/^#+begin_src *[hH][tT][mM][lL] *<</<</
-s/^#+begin_src *[pP][yY][tT][hH][oO][nN] *<</<</
-s/^#+begin_src *[rR] *<</<</
-
-s/\\/\\/ *<</<</
-/^#+end/d
-/^\\*/d
-s/^  //
-' \$@"
-echo -e "$content" > org2nw
-
-content="/^ *!/ {
-  sub(/^ *!/, \"\", \$0)
-  s = s \" \" \$0
-}
-/begin_src go/ {
-  if(s) {
-    gsub(/\\\\\\[^{]+{/, \"\", s)
-    gsub(/}/, \"\", s)
-    gsub(/\\$/, \"\", s)
-    printf \"%s\\\n//%s\\\n\", \$0, s
-    s = \"\"
-  } else 
-    print
-}
-!/^ *!/ && !/begin_src (go|c|c++|r|python|sh|html)/ {
-  print
-}"
-echo -e "$content" > preTangle.awk
-
-content="/^ *!/ {
-  l = \$0
-  sub(/^ *!/, \"\", l)
-  printf \"\\\\\\\\textbf{%s}\\\n\", l
-}
-!/^ *!/ {
-  print
-}"
-echo -e "$content" > preWeave.awk
-
-# Initialize a git repository
-cd ..
 git init
 git add .
 git commit -m "initial commit"

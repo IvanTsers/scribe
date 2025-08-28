@@ -1,0 +1,19 @@
+\documentclass[a4paper]{article}
+\input{header}
+\begin{document}
+\pagestyle{noweb}
+
+\title{A new program \texttt{$prog_name}}
+\author{$author_name}
+\date{\input{version.txt}}
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+\input{intro}
+\section{Implementation}
+\input{$prog_name}
+
+\bibliography{ref}
+\end{document}

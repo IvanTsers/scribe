@@ -1,0 +1,20 @@
+#+begin_export latex
+The program \texttt{$prog_name} has hooks for variables and actions.
+#+end_export
+#+begin_src sh <<$prog_name.sh>>=
+  //<<Variables>>
+
+  //<<Actions>>
+#+end_src
+#+begin_export latex
+The variable \texttt{MESSAGE} contains an imporant message.
+#+end_export
+#+begin_src sh <<Variables>>=
+  MESSAGE="Hello!"
+#+end_src
+#+begin_export latex
+We print the message.
+#+end_export
+#+begin_src sh <<Actions>>=
+  echo $MESSAGE
+#+end_src
