@@ -18,16 +18,20 @@ lang=$3
 
 # If the language is unsupported, we notify the user and exit.
 case "$lang" in
-    go|sh|R)
+    go|sh|R|py)
         # language recognized, do nothing
         ;;
     r)
 	# We replace the lowercase "r" with "R" for consistency
 	lang="R"
 	;;
+    python)
+	# We replace "python" with "py" to have conventional file extensions
+	lang="py"
+	;;
     *) # default:
-	echo "Error: unsupported language '$language'"
-	echo "Supported languages: go, sh, R"
+	echo "Error: unsupported language '$lang'"
+	echo "Supported languages: go, sh, R, py(thon)"
 	exit 1
 	;;
 esac

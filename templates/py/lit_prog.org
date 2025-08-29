@@ -1,0 +1,37 @@
+#+begin_export latex
+The script \texttt{$prog_name} has hooks for imports, functions, and
+actions.
+#+end_export
+#+begin_src python <<$prog_name.py>>=
+  //<<Imports>>
+
+  //<<Functions>>
+
+  //<<Actions>>
+#+end_src
+#+begin_export latex
+The function \texttt{hello\_requests} says "hello" to the
+\texttt{requests} package if it is installed.
+#+end_export
+#+begin_src python <<Functions>>=
+  def hello_requests(x):
+      """Greets the package 'requests' if it is installed."""
+      if x:
+	  print("Hello, requests!")
+#+end_src
+#+begin_export latex
+We check if \texttt{requests} is installed and if so, we load it.
+#+end_export
+#+begin_src python <<Imports>>=
+  try:
+      import requests
+      requests_here = True
+  except ImportError:
+      requests_here = False
+#+end_src
+#+begin_export latex
+We say hello to the package!
+#+end_export
+#+begin_src python <<Actions>>=
+  hello_requests(requests_here)
+#+end_src
