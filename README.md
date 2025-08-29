@@ -2,7 +2,8 @@
 
 This script creates a literate programming repository with stub files:
 `org` to weave and tangle, `Makefile` for tangling, and `doc/*` for
-weaving. Currently available languages: `go`, `sh`, `R`, and `python`.
+weaving. Currently available languages: `go`, `sh`, `R`, `python`, and
+`C`.
 
 Usage:
 

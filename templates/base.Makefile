@@ -11,7 +11,7 @@ all: $(NAME).$lang lang_actions
 
 $(NAME).$lang: $(NAME).org
 	$(ORG2NW) $(NAME).org | $(PRETANGLE) | notangle -R$(NAME).$lang > $(NAME).$lang
-
+	$tangle_header_file
 # ---------- Basic make subcommands ----------
 
 .PHONY: doc clean

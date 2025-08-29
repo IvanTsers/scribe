@@ -1,0 +1,58 @@
+#+begin_export latex
+The program \texttt{$prog_name} has a header file and a main file.
+
+\subsection{Header file}
+We define \texttt{hello} and declare functions.
+#+end_export
+#+begin_src c <<$prog_name.h>>=
+  #ifndef HELLO_H
+  #define HELLO_H
+
+  //<<Declare functions>>
+
+  #endif
+#+end_src
+#+begin_export latex
+We declare the function \texttt{hello}.
+#+end_export
+#+begin_src c <<Declare functions>>=
+  void hello();
+#+end_src
+#+begin_export latex
+We have finished our header file.
+
+\subsection{Main file}
+The main file has hooks for imports, functions, and a generic main
+function.
+#+end_export
+#+begin_src c <<$prog_name.c>>=
+  //<<Imports>>
+
+  //<<Functions>>
+
+  int main() {
+    //<<Main function contents>>
+      return 0;
+  }
+#+end_src
+#+begin_export latex
+We begin with including our friendly header file.
+#+end_export
+#+begin_src c <<Imports>>=
+  #include "hello.h"
+#+end_src
+#+begin_export latex
+The function \texttt{hello} just says "hello"...
+#+end_export
+#+begin_src c <<Functions>>=
+  void hello() {
+      printf("Hello!\n");
+  }
+#+end_src
+#+begin_export latex
+We say "hello" to everyone who has successfully compiled and run our
+program!
+#+end_export
+#+begin_src c <<Main function contents>>=
+  hello();
+#+end_src
