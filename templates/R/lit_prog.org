@@ -1,0 +1,38 @@
+#+begin_export latex
+The script \texttt{$prog_name} has hooks for imports, functions, and
+actions.
+#+end_export
+#+begin_src R <<$prog_name.R>>=
+  //<<Imports>>
+
+  //<<Functions>>
+
+  //<<Actions>>
+#+end_src
+#+begin_export latex
+The function \texttt{hello\_dplyr} says "hello" to the \texttt{dplyr}
+library if it is installed.
+#+end_export
+#+begin_src R <<Functions>>=
+  hello_dplyr <- function(x) {
+    if (x) {
+      message("Hello, dplyr!")
+    }
+  }
+#+end_src
+#+begin_export latex
+We check if \texttt{dplyr} is installed and if so, we load it.
+#+end_export
+#+begin_src R <<Imports>>=
+  dplyr_here <- require("dplyr")
+
+  if (dplyr_here) {
+    library(dplyr)
+  }
+#+end_src
+#+begin_export latex
+We say hello to the package!
+#+end_export
+#+begin_src R <<Actions>>=
+  hello_dplyr(dplyr_here)
+#+end_src

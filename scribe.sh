@@ -6,7 +6,7 @@ set -e
 
 # We print the usage if an incorrect number of arguments is provided
 if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 progName \"Author Name\" language(go|sh)"
+    echo "Usage: $0 progName \"Author Name\" language(go|sh|R)"
     echo " Note: Do not use underscores in progName to avoid LaTeX compilation errors."
     exit 1
 fi
@@ -18,12 +18,16 @@ lang=$3
 
 # If the language is unsupported, we notify the user and exit.
 case "$lang" in
-    go|sh)
-    # language recognized, do nothing
-    ;;
+    go|sh|R)
+        # language recognized, do nothing
+        ;;
+    r)
+	# We replace the lowercase "r" with "R" for consistency
+	lang="R"
+	;;
     *) # default:
 	echo "Error: unsupported language '$language'"
-	echo "Supported languages: go, sh"
+	echo "Supported languages: go, sh, R"
 	exit 1
 	;;
 esac
